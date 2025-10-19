@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import { toast } from "react-hot-toast";
 
 export default function TodoList({ todos, setTodos }) {
@@ -7,19 +8,18 @@ export default function TodoList({ todos, setTodos }) {
   const [editText, setEditText] = useState("");
 
   useEffect(() => {
-    const count = todos.filter((todo) => !todo.completed).length;
+    const count = (todos ?? []).filter((todo) => !todo.completed).length;
     setRemainingTasks(count);
   }, [todos]);
 
   const toggleComplete = (id) => {
+    const task = (todos ?? []).find((t) => t.id === id);
     setTodos((prev) =>
-      prev.map((todo) =>
+      (prev ?? []).map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     );
-
-    const task = todos.find((todo) => todo.id === id);
-    if (!task.completed) {
+    if (task && !task.completed) {
       toast.success(`✅ کار "${task.text}" انجام شد!`);
     }
   };
@@ -31,34 +31,35 @@ export default function TodoList({ todos, setTodos }) {
 
   const saveEdit = (id) => {
     setTodos((prev) =>
-      prev.map((todo) => (todo.id === id ? { ...todo, text: editText } : todo))
+      (prev ?? []).map((todo) =>
+        todo.id === id ? { ...todo, text: editText } : todo
+      )
     );
     setEditingId(null);
     toast.success("✅ تغییرات ذخیره شد!");
   };
 
   const deleteTask = (id) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    setTodos((prev) => (prev ?? []).filter((todo) => todo.id !== id));
     toast.error("❌ کار حذف شد!");
   };
 
   return (
     <div className="w-full max-w-2xl mx-auto">
       <ul className="space-y-3 my-3">
-        {todos.map((todo) => (
+        {(todos ?? []).map((todo) => (
           <li
             key={todo.id}
             className={`flex justify-between items-center p-4 rounded-lg transition-all ${
               todo.completed
-                ? "bg-gray-300 dark:bg-gray-800 opacity-70"
+                ? "bg-gray-200 dark:bg-gray-800 opacity-70"
                 : "bg-white dark:bg-gray-700"
             }`}
           >
             <div className="flex items-center gap-3">
-              {/* چک‌باکس سفارشی‌شده */}
               <input
                 type="checkbox"
-                checked={todo.completed}
+                checked={!!todo.completed}
                 onChange={() => toggleComplete(todo.id)}
                 className="w-6 h-6 cursor-pointer accent-blue-500"
               />
@@ -84,12 +85,10 @@ export default function TodoList({ todos, setTodos }) {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* تاریخ تسک */}
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {new Date(todo.id).toLocaleString()}
               </span>
 
-              {/* دسته‌بندی با استایل بهتر */}
               <span
                 className={`px-3 py-1 text-xs rounded-lg font-semibold ${getCategoryColor(
                   todo.category
@@ -98,7 +97,6 @@ export default function TodoList({ todos, setTodos }) {
                 {todo.category}
               </span>
 
-              {/* دکمه‌های ویرایش و حذف */}
               {editingId === todo.id ? (
                 <button
                   onClick={() => saveEdit(todo.id)}
@@ -131,6 +129,8 @@ export default function TodoList({ todos, setTodos }) {
 // رنگ‌بندی دسته‌بندی‌ها
 const getCategoryColor = (category) => {
   switch (category) {
+    case "عمومی":
+      return "bg-slate-500 text-white";
     case "کاری":
       return "bg-blue-500 text-white";
     case "دانشگاه":
@@ -140,4 +140,20 @@ const getCategoryColor = (category) => {
     default:
       return "bg-gray-500 text-white";
   }
+};
+
+TodoList.propTypes = {
+  todos: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      text: PropTypes.string.isRequired,
+      category: PropTypes.string.isRequired,
+      completed: PropTypes.bool.isRequired,
+      reminder: PropTypes.oneOfType([
+        PropTypes.number,
+        PropTypes.oneOf([null]),
+      ]),
+    })
+  ).isRequired,
+  setTodos: PropTypes.func.isRequired,
 };
